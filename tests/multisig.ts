@@ -7,11 +7,18 @@ describe("multisig", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.Multisig as Program<Multisig>;
+  let multisigAccount;
+  let multiKey;
+
+    const sig = anchor.web3.Keypair.generate();
+    const sig1 = anchor.web3.Keypair.generate();
+    const sig2 = anchor.web3.Keypair.generate();
+    const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
 
   it("Create Multisig Account", async () => {
     // Add your test here.
     let multisig = anchor.web3.Keypair.generate();
-    const tx = await program.rpc.createMultisig([], new anchor.BN(3), {
+    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), {
         accounts: {
             multisig: multisig.publicKey,
             payer: program.provider.wallet.publicKey,
@@ -19,6 +26,30 @@ describe("multisig", () => {
         },
         signers: [multisig],
     });
+    multisigAccount = await program.account.multisig.fetch(multisig.publicKey);
+    multiKey = multisig.publicKey;
+    console.log(multisigAccount.threshold);
+    console.log(multisigAccount.sigs);
     console.log("Your transaction signature: ", tx);
+  });
+
+  it("Create Transaction Account", async () => {
+    // Add your test here.
+    let transaction = anchor.web3.Keypair.generate();
+    console.log(sig.publicKey)
+    const tx = await program.rpc.createTransaction(multiKey, sig.publicKey, {
+        accounts: {
+            transaction: transaction.publicKey,
+            // multisig: multiKey,
+            // requestedBy: sig.publicKey,
+            payer: program.provider.wallet.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [transaction],
+    });
+    let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
+    console.log(transactionAccount.didRun);
+    console.log(transactionAccount.multisig.toString());
+    console.log(transactionAccount.requestedBy.toString());
   });
 });
