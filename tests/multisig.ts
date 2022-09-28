@@ -9,6 +9,8 @@ describe("multisig", () => {
   const program = anchor.workspace.Multisig as Program<Multisig>;
   let multisigAccount;
   let multiKey;
+  let multisig;
+  let transaction;
 
     const sig = anchor.web3.Keypair.generate();
     const sig1 = anchor.web3.Keypair.generate();
@@ -17,7 +19,7 @@ describe("multisig", () => {
 
   it("Create Multisig Account", async () => {
     // Add your test here.
-    let multisig = anchor.web3.Keypair.generate();
+    multisig = anchor.web3.Keypair.generate();
     const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), {
         accounts: {
             multisig: multisig.publicKey,
@@ -35,7 +37,7 @@ describe("multisig", () => {
 
   it("Create Transaction Account", async () => {
     // Add your test here.
-    let transaction = anchor.web3.Keypair.generate();
+    transaction = anchor.web3.Keypair.generate();
     console.log(sig.publicKey)
     const tx = await program.rpc.createTransaction(multiKey, sig.publicKey, {
         accounts: {
@@ -46,6 +48,26 @@ describe("multisig", () => {
             systemProgram: anchor.web3.SystemProgram.programId,
         },
         signers: [transaction],
+    });
+    let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
+    console.log(transactionAccount.didRun);
+    console.log(transactionAccount.multisig.toString());
+    console.log(transactionAccount.requestedBy.toString());
+  });
+
+  it("Can Approve Transaction", async () => {
+    // Add your test here.
+    console.log(sig.publicKey)
+    const tx = await program.rpc.approveTransaction({
+        accounts: {
+            transaction: transaction.publicKey,
+            multisig: multisig.publicKey,
+            sig: sig.publicKey,
+            sig1: sig1.publicKey,
+            sig2: sig2.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [sig, sig1, sig2],
     });
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log(transactionAccount.didRun);
