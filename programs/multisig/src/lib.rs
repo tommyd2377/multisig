@@ -7,7 +7,9 @@ pub mod multisig {
     use super::*;
 
     pub fn create_multisig(ctx: Context<CreateMultisig>, sigs: Vec<Pubkey>, threshold: i32) -> Result<()> {
+        sigs_are_unique(&sigs)?;
         let multisig: &mut Account<Multisig> = &mut ctx.accounts.multisig;
+
         multisig.sigs = sigs;
         multisig.threshold = threshold;
         Ok(())
@@ -29,8 +31,6 @@ pub mod multisig {
         let multisig: &mut Account<Multisig> = &mut ctx.accounts.multisig;
 
         let key_vec = &mut transaction.approved;
-        let sig = &ctx.accounts.signature;
-
         let keys = &multisig.sigs;
 
         // if transaction.did_run == true {
@@ -38,7 +38,7 @@ pub mod multisig {
         // }
 
         if !keys.contains(&the_key) {
-            return Err(ErrorCode::InvalidOwner.into())
+            return Err(ErrorCode::InvalidSig.into())
         }
 
         key_vec.push(the_key);
@@ -64,8 +64,7 @@ pub struct CreateMultisig<'info> {
 pub struct CreateTransaction<'info> {
     #[account(init, payer = payer, space = 500)]
     pub transaction: Account<'info, Transaction>,
-    // pub multisig: Account<'info, Multisig>,
-    // pub requested_by: Signer<'info>,
+    pub multisig: Account<'info, Multisig>,
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -73,11 +72,10 @@ pub struct CreateTransaction<'info> {
 
 #[derive(Accounts)]
 pub struct ApproveTransaction<'info> {
-    pub multisig: Account<'info, Multisig>,
     #[account(mut)]
     pub transaction: Account<'info, Transaction>,
+    pub multisig: Account<'info, Multisig>,
     pub signature: Signer<'info>,
-    // pub sig: Account<'info, Pubkey>,
     pub system_program: Program<'info, System>,
 }
 
@@ -95,10 +93,23 @@ pub struct Transaction {
     pub did_run: bool,
 }
 
+fn sigs_are_unique(sigs: &[Pubkey]) -> Result<()> {
+    for (i, sig) in sigs.iter().enumerate() {
+        require!(
+            !sigs.iter().skip(i + 1).any(|item| item == sig),
+            UniqueSigs
+        )
+    }
+    Ok(())
+}
+
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("Transaction has already been approved and run")]
     TransactionComplete,
+    #[msg("Unique signatures required")]
+    UniqueSigs,
     #[msg("You do not have access to multisig wallet")]
-    InvalidOwner,
+    InvalidSig,
 }

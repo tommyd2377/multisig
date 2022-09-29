@@ -15,49 +15,49 @@ describe("multisig", () => {
     const sig = anchor.web3.Keypair.generate();
     const sig1 = anchor.web3.Keypair.generate();
     const sig2 = anchor.web3.Keypair.generate();
+    const fakeSig = anchor.web3.Keypair.generate();
     const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
 
   it("Create Multisig Account", async () => {
     // Add your test here.
     multisig = anchor.web3.Keypair.generate();
-    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(2), {
+    const signature = await program.provider.connection.requestAirdrop(sig.publicKey, 10000000000);
+    await program.provider.connection.confirmTransaction(signature);
+    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), {
         accounts: {
             multisig: multisig.publicKey,
-            payer: program.provider.wallet.publicKey,
+            payer: sig.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
         },
-        signers: [multisig],
+        signers: [multisig, sig],
     });
     multisigAccount = await program.account.multisig.fetch(multisig.publicKey);
     multiKey = multisig.publicKey;
-    console.log(multisigAccount.threshold);
-    console.log(multisigAccount.sigs);
-    console.log("Your transaction signature: ", tx);
+    console.log("Threshold: " + multisigAccount.threshold);
+    console.log("Signatures: " + multisigAccount.sigs);
+    console.log("Your transaction signature: " + tx);
   });
 
   it("Create Transaction Account", async () => {
     // Add your test here.
     transaction = anchor.web3.Keypair.generate();
-    console.log(sig.publicKey)
-    const tx = await program.rpc.createTransaction(multiKey, sig.publicKey, {
+    const tx = await program.rpc.createTransaction(multisig.publicKey, sig.publicKey, {
         accounts: {
             transaction: transaction.publicKey,
-            // multisig: multiKey,
-            // requestedBy: sig.publicKey,
-            payer: program.provider.wallet.publicKey,
+            multisig: multisig.publicKey,
+            payer: sig.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
         },
-        signers: [transaction],
+        signers: [transaction, sig],
     });
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
-    console.log(transactionAccount.didRun);
-    console.log(transactionAccount.multisig.toString());
-    console.log(transactionAccount.requestedBy.toString());
+    console.log("Did Run: " + transactionAccount.didRun);
+    console.log("Multisig: " + transactionAccount.multisig.toString());
+    console.log("Requested By: " + transactionAccount.requestedBy.toString());
   });
 
   it("Approve Transaction One", async () => {
     // Add your test here.
-    console.log(sig.publicKey)
     const tx = await program.rpc.approveTransaction(sig.publicKey, {
         accounts: {
             transaction: transaction.publicKey,
@@ -68,14 +68,14 @@ describe("multisig", () => {
         signers: [sig],
     });
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
-    console.log(transactionAccount.didRun);
-    console.log(transactionAccount.multisig.toString());
-    console.log(transactionAccount.requestedBy.toString());
+    console.log("Did Run: " + transactionAccount.didRun);
+    console.log("Multisig: " + transactionAccount.multisig.toString());
+    console.log("Requested By: " + transactionAccount.requestedBy.toString());
+    console.log("Approved By: " + transactionAccount.approved);
   });
 
   it("Approve Transaction Two", async () => {
     // Add your test here.
-    console.log(sig1.publicKey)
     const tx = await program.rpc.approveTransaction(sig1.publicKey, {
         accounts: {
             transaction: transaction.publicKey,
@@ -86,14 +86,32 @@ describe("multisig", () => {
         signers: [sig1],
     });
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
-    console.log(transactionAccount.didRun);
-    console.log(transactionAccount.multisig.toString());
-    console.log(transactionAccount.requestedBy.toString());
+    console.log("Did Run: " + transactionAccount.didRun);
+    console.log("Multisig: " + transactionAccount.multisig.toString());
+    console.log("Requested By: " + transactionAccount.requestedBy.toString());
+    console.log("Approved By: " + transactionAccount.approved);
+  });
+
+  it("Test should fail. Invalid Signature", async () => {
+    // Add your test here.
+    const tx = await program.rpc.approveTransaction(fakeSig.publicKey, {
+        accounts: {
+            transaction: transaction.publicKey,
+            multisig: multisig.publicKey,
+            signature: fakeSig.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [fakeSig],
+    });
+    let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
+    console.log("Did Run: " + transactionAccount.didRun);
+    console.log("Multisig: " + transactionAccount.multisig.toString());
+    console.log("Requested By: " + transactionAccount.requestedBy.toString());
+    console.log("Approved By: " + transactionAccount.approved);
   });
 
   it("Approve Transaction Three", async () => {
     // Add your test here.
-    console.log(sig2.publicKey)
     const tx = await program.rpc.approveTransaction(sig2.publicKey, {
         accounts: {
             transaction: transaction.publicKey,
@@ -104,8 +122,9 @@ describe("multisig", () => {
         signers: [sig2],
     });
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
-    console.log(transactionAccount.didRun);
-    console.log(transactionAccount.multisig.toString());
-    console.log(transactionAccount.requestedBy.toString());
+    console.log("Did Run: " + transactionAccount.didRun);
+    console.log("Multisig: " + transactionAccount.multisig.toString());
+    console.log("Requested By: " + transactionAccount.requestedBy.toString());
+    console.log("Approved By: " + transactionAccount.approved);
   });
 });
