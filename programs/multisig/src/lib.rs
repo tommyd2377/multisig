@@ -15,13 +15,23 @@ pub mod multisig {
         Ok(())
     }
 
-    pub fn create_transaction(ctx: Context<CreateTransaction>, multisig: Pubkey, requested_by: Pubkey) -> Result<()> {
+    pub fn create_transaction(ctx: Context<CreateTransaction>, multisig: Pubkey, requested_by: Pubkey, 
+        program: Pubkey, accs: Pubkey, data: u8) -> Result<()> {
         let transaction: &mut Account<Transaction> = &mut ctx.accounts.transaction;
-        // let multisig = &ctx.accounts.multisig;
-        // let requested_by = &ctx.accounts.requested_by;
+        let multisig1: &mut Account<Multisig> = &mut ctx.accounts.multisig;
+
+        let keys = &multisig1.sigs;
+        
+        if !keys.contains(&requested_by) {
+            return Err(ErrorCode::InvalidSig.into())
+        }
+
         transaction.multisig = multisig;
         transaction.requested_by = requested_by;
         transaction.did_run = false;
+        transaction.data = data;
+        transaction.program = program;
+        transaction.accs = accs;
 
         Ok(())
     }
@@ -32,6 +42,8 @@ pub mod multisig {
 
         let key_vec = &mut transaction.approved;
         let keys = &multisig.sigs;
+
+        // let mut hasb = transaction.did_run;
 
         // if transaction.did_run == true {
         //     return Err(ErrorCode::TransactionComplete.into())
@@ -53,7 +65,7 @@ pub mod multisig {
 
 #[derive(Accounts)]
 pub struct CreateMultisig<'info> {
-    #[account(init, payer = payer, space = 500)]
+    #[account(init, payer = payer, space = 200)]
     pub multisig: Account<'info, Multisig>,
     #[account(mut)]
     pub payer: Signer<'info>,
@@ -62,7 +74,7 @@ pub struct CreateMultisig<'info> {
 
 #[derive(Accounts)]
 pub struct CreateTransaction<'info> {
-    #[account(init, payer = payer, space = 500)]
+    #[account(init, payer = payer, space = 300)]
     pub transaction: Account<'info, Transaction>,
     pub multisig: Account<'info, Multisig>,
     #[account(mut)]
@@ -90,6 +102,9 @@ pub struct Transaction {
     pub multisig: Pubkey,
     pub requested_by: Pubkey,
     pub approved: Vec<Pubkey>,
+    pub program: Pubkey,
+    pub accs: Pubkey,
+    pub data: u8,
     pub did_run: bool,
 }
 
@@ -102,7 +117,6 @@ fn sigs_are_unique(sigs: &[Pubkey]) -> Result<()> {
     }
     Ok(())
 }
-
 
 #[error_code]
 pub enum ErrorCode {

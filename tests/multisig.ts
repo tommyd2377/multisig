@@ -41,7 +41,10 @@ describe("multisig", () => {
   it("Create Transaction Account", async () => {
     // Add your test here.
     transaction = anchor.web3.Keypair.generate();
-    const tx = await program.rpc.createTransaction(multisig.publicKey, sig.publicKey, {
+    let programid = anchor.web3.Keypair.generate();
+    let accountids = anchor.web3.Keypair.generate();
+    let data = "data";
+    const tx = await program.rpc.createTransaction(multisig.publicKey, sig.publicKey, programid.publicKey, accountids.publicKey, data, {
         accounts: {
             transaction: transaction.publicKey,
             multisig: multisig.publicKey,
