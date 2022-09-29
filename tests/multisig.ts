@@ -20,7 +20,7 @@ describe("multisig", () => {
   it("Create Multisig Account", async () => {
     // Add your test here.
     multisig = anchor.web3.Keypair.generate();
-    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), {
+    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(2), {
         accounts: {
             multisig: multisig.publicKey,
             payer: program.provider.wallet.publicKey,
@@ -55,19 +55,53 @@ describe("multisig", () => {
     console.log(transactionAccount.requestedBy.toString());
   });
 
-  it("Can Approve Transaction", async () => {
+  it("Approve Transaction One", async () => {
     // Add your test here.
     console.log(sig.publicKey)
-    const tx = await program.rpc.approveTransaction({
+    const tx = await program.rpc.approveTransaction(sig.publicKey, {
         accounts: {
             transaction: transaction.publicKey,
             multisig: multisig.publicKey,
-            sig: sig.publicKey,
-            sig1: sig1.publicKey,
-            sig2: sig2.publicKey,
+            signature: sig.publicKey,
             systemProgram: anchor.web3.SystemProgram.programId,
         },
-        signers: [sig, sig1, sig2],
+        signers: [sig],
+    });
+    let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
+    console.log(transactionAccount.didRun);
+    console.log(transactionAccount.multisig.toString());
+    console.log(transactionAccount.requestedBy.toString());
+  });
+
+  it("Approve Transaction Two", async () => {
+    // Add your test here.
+    console.log(sig1.publicKey)
+    const tx = await program.rpc.approveTransaction(sig1.publicKey, {
+        accounts: {
+            transaction: transaction.publicKey,
+            multisig: multisig.publicKey,
+            signature: sig1.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [sig1],
+    });
+    let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
+    console.log(transactionAccount.didRun);
+    console.log(transactionAccount.multisig.toString());
+    console.log(transactionAccount.requestedBy.toString());
+  });
+
+  it("Approve Transaction Three", async () => {
+    // Add your test here.
+    console.log(sig2.publicKey)
+    const tx = await program.rpc.approveTransaction(sig2.publicKey, {
+        accounts: {
+            transaction: transaction.publicKey,
+            multisig: multisig.publicKey,
+            signature: sig2.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [sig2],
     });
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log(transactionAccount.didRun);

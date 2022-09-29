@@ -24,12 +24,29 @@ pub mod multisig {
         Ok(())
     }
 
-    pub fn approve_transaction(ctx: Context<ApproveTransaction>) -> Result<()> {
-        let tran: &mut Account<Transaction> = &mut ctx.accounts.transaction;
+    pub fn approve_transaction(ctx: Context<ApproveTransaction>, the_key: Pubkey) -> Result<()> {
+        let transaction: &mut Account<Transaction> = &mut ctx.accounts.transaction;
+        let multisig: &mut Account<Multisig> = &mut ctx.accounts.multisig;
+
+        let key_vec = &mut transaction.approved;
+        let sig = &ctx.accounts.signature;
+
+        let keys = &multisig.sigs;
+
+        // if transaction.did_run == true {
+        //     return Err(ErrorCode::TransactionComplete.into())
+        // }
+
+        if !keys.contains(&the_key) {
+            return Err(ErrorCode::InvalidOwner.into())
+        }
+
+        key_vec.push(the_key);
+
+        if multisig.threshold == key_vec.len() as i32 {
+            transaction.did_run = true;
+        }
     
-        tran.did_run = true;
-
-
         Ok(())
     }
 }
@@ -59,9 +76,8 @@ pub struct ApproveTransaction<'info> {
     pub multisig: Account<'info, Multisig>,
     #[account(mut)]
     pub transaction: Account<'info, Transaction>,
-    pub sig: Signer<'info>,
-    pub sig1: Signer<'info>,
-    pub sig2: Signer<'info>,
+    pub signature: Signer<'info>,
+    // pub sig: Account<'info, Pubkey>,
     pub system_program: Program<'info, System>,
 }
 
@@ -75,6 +91,7 @@ pub struct Multisig {
 pub struct Transaction {
     pub multisig: Pubkey,
     pub requested_by: Pubkey,
+    pub approved: Vec<Pubkey>,
     pub did_run: bool,
 }
 
@@ -82,4 +99,6 @@ pub struct Transaction {
 pub enum ErrorCode {
     #[msg("Transaction has already been approved and run")]
     TransactionComplete,
+    #[msg("You do not have access to multisig wallet")]
+    InvalidOwner,
 }
