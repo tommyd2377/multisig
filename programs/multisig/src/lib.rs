@@ -6,12 +6,13 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 pub mod multisig {
     use super::*;
 
-    pub fn create_multisig(ctx: Context<CreateMultisig>, sigs: Vec<Pubkey>, threshold: i32) -> Result<()> {
+    pub fn create_multisig(ctx: Context<CreateMultisig>, sigs: Vec<Pubkey>, threshold: i32, nonce: u8) -> Result<()> {
         sigs_are_unique(&sigs)?;
         let multisig: &mut Account<Multisig> = &mut ctx.accounts.multisig;
 
         multisig.sigs = sigs;
         multisig.threshold = threshold;
+        multisig.nonce = nonce;
         Ok(())
     }
 
@@ -37,17 +38,15 @@ pub mod multisig {
     }
 
     pub fn approve_transaction(ctx: Context<ApproveTransaction>, the_key: Pubkey) -> Result<()> {
-        let transaction: &mut Account<Transaction> = &mut ctx.accounts.transaction;
         let multisig: &mut Account<Multisig> = &mut ctx.accounts.multisig;
-
-        let key_vec = &mut transaction.approved;
         let keys = &multisig.sigs;
 
-        // let mut hasb = transaction.did_run;
+        if ctx.accounts.transaction.did_run {
+            return Err(ErrorCode::TransactionComplete.into())
+        }
 
-        // if transaction.did_run == true {
-        //     return Err(ErrorCode::TransactionComplete.into())
-        // }
+        let transaction: &mut Account<Transaction> = &mut ctx.accounts.transaction;
+        let key_vec = &mut transaction.approved;
 
         if !keys.contains(&the_key) {
             return Err(ErrorCode::InvalidSig.into())
@@ -56,6 +55,7 @@ pub mod multisig {
         key_vec.push(the_key);
 
         if multisig.threshold == key_vec.len() as i32 {
+            //run transactions here
             transaction.did_run = true;
         }
     
@@ -95,6 +95,7 @@ pub struct ApproveTransaction<'info> {
 pub struct Multisig {
     pub sigs: Vec<Pubkey>,
     pub threshold: i32,
+    pub nonce: u8,
 }
 
 #[account]

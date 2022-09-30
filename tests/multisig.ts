@@ -12,18 +12,25 @@ describe("multisig", () => {
   let multisig;
   let transaction;
 
-    const sig = anchor.web3.Keypair.generate();
-    const sig1 = anchor.web3.Keypair.generate();
-    const sig2 = anchor.web3.Keypair.generate();
-    const fakeSig = anchor.web3.Keypair.generate();
-    const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
+  const sig = anchor.web3.Keypair.generate();
+  const sig1 = anchor.web3.Keypair.generate();
+  const sig2 = anchor.web3.Keypair.generate();
+const fakeSig = anchor.web3.Keypair.generate();
+const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
 
   it("Create Multisig Account", async () => {
     // Add your test here.
     multisig = anchor.web3.Keypair.generate();
+    const [
+        multisigSigner,
+        nonce,
+      ] = await anchor.web3.PublicKey.findProgramAddress(
+        [multisig.publicKey.toBuffer()],
+        program.programId
+      );
     const signature = await program.provider.connection.requestAirdrop(sig.publicKey, 10000000000);
     await program.provider.connection.confirmTransaction(signature);
-    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), {
+    const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), nonce, {
         accounts: {
             multisig: multisig.publicKey,
             payer: sig.publicKey,
