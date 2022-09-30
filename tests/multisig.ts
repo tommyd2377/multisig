@@ -15,8 +15,8 @@ describe("multisig", () => {
   const sig = anchor.web3.Keypair.generate();
   const sig1 = anchor.web3.Keypair.generate();
   const sig2 = anchor.web3.Keypair.generate();
-const fakeSig = anchor.web3.Keypair.generate();
-const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
+  const fakeSig = anchor.web3.Keypair.generate();
+  const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
 
   it("Create Multisig Account", async () => {
     // Add your test here.
@@ -30,6 +30,7 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
       );
     const signature = await program.provider.connection.requestAirdrop(sig.publicKey, 10000000000);
     await program.provider.connection.confirmTransaction(signature);
+    
     const tx = await program.rpc.createMultisig(sigs, new anchor.BN(3), nonce, {
         accounts: {
             multisig: multisig.publicKey,
@@ -38,6 +39,7 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
         },
         signers: [multisig, sig],
     });
+    
     multisigAccount = await program.account.multisig.fetch(multisig.publicKey);
     multiKey = multisig.publicKey;
     console.log("Threshold: " + multisigAccount.threshold);
@@ -50,7 +52,8 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
     transaction = anchor.web3.Keypair.generate();
     let programid = anchor.web3.Keypair.generate();
     let accountids = anchor.web3.Keypair.generate();
-    let data = "data";
+    let data = {};
+    
     const tx = await program.rpc.createTransaction(multisig.publicKey, sig.publicKey, programid.publicKey, accountids.publicKey, data, {
         accounts: {
             transaction: transaction.publicKey,
@@ -60,6 +63,7 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
         },
         signers: [transaction, sig],
     });
+    
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log("Did Run: " + transactionAccount.didRun);
     console.log("Multisig: " + transactionAccount.multisig.toString());
@@ -77,6 +81,7 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
         },
         signers: [sig],
     });
+    
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log("Did Run: " + transactionAccount.didRun);
     console.log("Multisig: " + transactionAccount.multisig.toString());
@@ -95,6 +100,7 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
         },
         signers: [sig1],
     });
+    
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log("Did Run: " + transactionAccount.didRun);
     console.log("Multisig: " + transactionAccount.multisig.toString());
@@ -113,6 +119,7 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
         },
         signers: [fakeSig],
     });
+    
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log("Did Run: " + transactionAccount.didRun);
     console.log("Multisig: " + transactionAccount.multisig.toString());
@@ -131,6 +138,26 @@ const sigs = [sig.publicKey, sig1.publicKey, sig2.publicKey];
         },
         signers: [sig2],
     });
+    
+    let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
+    console.log("Did Run: " + transactionAccount.didRun);
+    console.log("Multisig: " + transactionAccount.multisig.toString());
+    console.log("Requested By: " + transactionAccount.requestedBy.toString());
+    console.log("Approved By: " + transactionAccount.approved);
+  });
+
+  it("Test should fail. Transaction has been processed", async () => {
+    // Add your test here.
+    const tx = await program.rpc.approveTransaction(sig2.publicKey, {
+        accounts: {
+            transaction: transaction.publicKey,
+            multisig: multisig.publicKey,
+            signature: sig2.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [sig2],
+    });
+    
     let transactionAccount = await program.account.transaction.fetch(transaction.publicKey);
     console.log("Did Run: " + transactionAccount.didRun);
     console.log("Multisig: " + transactionAccount.multisig.toString());
