@@ -1,11 +1,3 @@
-// I looked through the coral-xyz/multisig repo to get a high level understanding of how multisig wallets work on Solana
-// I wrote about 90% of this anchor program from scratch and tried to make it my own without taking anything directly from another project
-// Here I designed the approve_transaction function to also run the queued transactions when the threshold is met 
-// The queued transactions will be run on line 71, but I wasn't to impliment that properly before this afternoon
-// 5 of the intergration tests should be passing, 1 was designed to fail with invalid data and 1 was designed to fail because the transaction was already run
-// If you want to see any other relevant work, last week I designed and built a simple Player v Player Automated Market Maker in Anchor 
-// The PvP AMM repo is open source and can be found at https://github.com/tommyd2377/pvp-amm
-
 use anchor_lang::prelude::*;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
